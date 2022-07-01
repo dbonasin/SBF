@@ -1,17 +1,4 @@
-is_sf_available <- require("sf")
-if (!is_sf_available) install.packages("sf")
-is_ggplot2_available <- require("ggplot2")
-if (!is_ggplot2_available) install.packages("ggplot2")
-is_raster_available <- require("raster")
-if (!is_raster_available) install.packages("raster")
-is_fasterize_available <- require("fasterize")
-if (!is_fasterize_available) install.packages("fasterize")
-is_tmap_available <- require("tmap")
-if (!is_tmap_available) install.packages("tmap")
-is_tmaptools_available <- require("tmaptools")
-if (!is_tmaptools_available) install.packages("tmaptools")
-is_rnaturalearth_available <- require("rnaturalearth")
-if (!is_rnaturalearth_available) install.packages("rnaturalearth")
+source("installNecessaryLibraries.r")
 
 coverageAOI <- function(map, point, radius, size_of_cell, partition_count){
   # buffer is circle around the center point
@@ -42,7 +29,7 @@ coverageAOI <- function(map, point, radius, size_of_cell, partition_count){
 
   # Selecting only those cells which contain the buffer
   S <- grid[which(grid$intersects_buffer == "Yes"),]
-  # 
+  
   return(partitionAOI(manhattanDistanceAOI(S), partition_count))
 }
 
@@ -57,14 +44,6 @@ manhattanDistanceAOI <- function(S){
   for (i in 1:nrow(S)) {
     S[i,]$manDist <- abs(x - S[i,]$X) + abs(y - S[i,]$Y)
   }
-  # 
-  # manDist <- c()
-  # 
-  # for (i in 1:nrow(S)) {
-  #   manDist <- c(manDist, abs(x - S[i,]$X) + abs(y - S[i,]$Y))
-  # }
-  # 
-  # S$manDist <- manDist
   return(S)
 }
 
@@ -86,7 +65,6 @@ partitionAOI <- function(S, partition_count){
       max_distance <- max_distance - partition_length
     }
   }
-  
   return(S)
 }
 
@@ -94,12 +72,14 @@ testAOI <- function(map, size_of_cell, S){
   grid <- st_make_grid(map, crs = 4326, cellsize = size_of_cell) %>%
     st_sf('geometry' = ., data.frame('ID' = 1:length(.)))
   
-  # It takes 80% of cells from whole grid for testing
+  # It takes 80% of random cells from whole grid for testing
   num_of_rows <- nrow(grid)
   grid[sample(num_of_rows, num_of_rows * 0.8), ]
   
   grid["label"] <- 0
+  
   # It transfers the labels for cells from S(they are in bloom filter) to grid
+  # This way we can know which label they have in bloom filter
   common <- intersect(grid$ID, S$ID) 
   for (i in common) {
     grid[which(grid$ID == i),]$label <- S[which(S$ID == i),]$label

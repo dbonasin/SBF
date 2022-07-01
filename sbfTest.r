@@ -2,19 +2,19 @@ rm(list=ls())
 
 # n represents how many areas of interest the program will make
 n <- 6
-k <- 100
-m <- 58
+# k represents number of hash functions
+k <- 10
+# m represents size of the SBF vector
+m <- 500
 # radius is in meters
 radius <- 25000
 # cell_size represents degrees of longitude and latitude
 cell_size <- 0.1
-p <- 0.01
 
 # Calculating probability, optimal amount of hash functions and 
 # optimal size of bloom filter vector
 source("probability.r")
-k_and_m <- calculateK_M(n, p)
-calculated_p <- calculateP(k_and_m$k, k_and_m$m, n)
+calculated_p <- calculateP(k, m, n)
 
 
 # Amfiteatar in Pula: 44.873084, 13.850165
@@ -24,7 +24,7 @@ lati <- 44.873084
 # Generate a set of hashes
 ###########################
 source("hashGeneration.r")
-H <- generateHashSet(k_and_m$k)
+H <- generateHashSet(k)
 
 # Generate areas of interest
 ############################
@@ -36,6 +36,8 @@ point <- data.frame(lng = long, lat = lati) %>%
     st_as_sf(coords = c("lng", "lat"), crs = 4326)
 
 S <- coverageAOI(cro, point, radius, cell_size, n)
+
+# Draw areas of interest on interactive map
 buffer <- st_buffer(point, radius)
 
 library(tmap)
@@ -47,14 +49,10 @@ tm_shape(S)+tm_fill(col="label", alpha = 0.45)+tm_polygons("blue", alpha = 0)+
 # Create SBF
 ########################
 source("spatialBF.r")
-b_vector <- insert(S,H,k_and_m$m)
-b_vector
-plot(b_vector)
+b_vector <- insert(S,H,m)
 
-# Check SBF
+# Test SBF
 ########################
-# TODO: make apriori and posteriori calculations for each area. 
-# As they did in python code, sbf.py lines: 697 - EOF (or maybe just probabilities, 778)
 test <- function(S){
   correct <- 0
   lower_label <- 0
@@ -93,8 +91,8 @@ test <- function(S){
   cat("Guessed higher label", higher_label, "/", nrow(S), "\n")
   cat("Guessed lower label", lower_label, "/", nrow(S), "\n")
   cat("Should be 0:", should_be_zero, "/", nrow(S), "\n")
-  # cat("\ncalculated_p: ", calculated_p, "\np in example:", (lower_label + should_be_zero) / nrow(S2))
 }
 
 S2 <- testAOI(cro, cell_size, S)
 test(S2)
+b_vector

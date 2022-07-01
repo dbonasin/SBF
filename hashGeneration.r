@@ -12,6 +12,6 @@ generateSalts <- function(num_salts){
 
 generateHashSet <- function(num_hashes){
   salts <- generateSalts(num_hashes)
-  result <- lapply(salts, function(i) {force(i); function(area) return(digest(area, "murmur32", seed = i))})
+  result <- lapply(salts, function(i) {force(i); function(area) return(digest(area, "murmur32", seed = i))})#murmur32 
   return(result)
 }
