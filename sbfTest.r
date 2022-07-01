@@ -5,7 +5,7 @@ n <- 6
 # k represents number of hash functions
 k <- 10
 # m represents size of the SBF vector
-m <- 500
+m <- 700
 # radius is in meters
 radius <- 25000
 # cell_size represents degrees of longitude and latitude
