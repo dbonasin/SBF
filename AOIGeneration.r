@@ -1,16 +1,10 @@
 source("installNecessaryLibraries.r")
 
-coverageAOI <- function(map, point, radius, size_of_cell, partition_count){
+coverageAOI <- function(grid, point, radius, size_of_cell, partition_count){
   # buffer is circle around the center point
   buffer <- st_buffer(point, radius)
   
-  # making grid over the map and size of cell is expressed in degrees
-  grid <- st_make_grid(map, crs = 4326, cellsize = size_of_cell) %>%
-    st_sf('geometry' = ., data.frame('ID' = 1:length(.)))
-  
   rasterizedGrid <- fasterize::raster(grid, resolution=c(size_of_cell,size_of_cell), crs = 4326)
-  
-  
 
   # get X and Y from row and col numbers
   grid$X <- raster::colFromCell(rasterizedGrid, grid$ID)
@@ -68,13 +62,10 @@ partitionAOI <- function(S, partition_count){
   return(S)
 }
 
-testAOI <- function(map, size_of_cell, S){
-  grid <- st_make_grid(map, crs = 4326, cellsize = size_of_cell) %>%
-    st_sf('geometry' = ., data.frame('ID' = 1:length(.)))
-  
+testAOI <- function(grid, size_of_cell, S){
   # It takes 80% of random cells from whole grid for testing
   num_of_rows <- nrow(grid)
-  grid[sample(num_of_rows, num_of_rows * 0.8), ]
+  grid[sample(num_of_rows, num_of_rows * 1), ]
   
   grid["label"] <- 0
   
