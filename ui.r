@@ -121,7 +121,7 @@ ui <- function(country_names, cell_size, lon_poi, lat_poi, lat_test, lon_test, r
             ),
             
             numericInput("degRadius", 
-                         h5("Enter the radius in degrees (Only for Normal distrubution mode)"),
+                         h5("Enter the standard deviation in degrees (Only for Normal distrubution mode)"),
                          value = degRadius
             )
         ),

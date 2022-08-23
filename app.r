@@ -3,7 +3,6 @@ rm(list=ls()) # cleaning workspace
 # load all necessary scripts
 source("installNecessaryLibraries.r")
 source("AOIGeneration.r")
-source("hashGeneration.r")
 source("spatialBF.r")
 source("ui.r")
 source("utilFunctions.r")
@@ -52,40 +51,39 @@ country_names <- c("Croatia",
                    worldmap[which(worldmap$name != "Croatia"),]$name
                    )
 
-ui <- ui(country_names, cell_size, lon_poi, lat_poi, lat_test, lon_test, radius, n, algorithms, k, m, num_rnd_points, randomGenerationModes, degRadius, num_iter)
+ui <- ui(country_names,
+         cell_size,
+         lon_poi,
+         lat_poi, 
+         lat_test,
+         lon_test,
+         radius,
+         n,
+         algorithms,
+         k,
+         m,
+         num_rnd_points, 
+         randomGenerationModes,
+         degRadius,
+         num_iter)
 
 render_initial_map <- function(output){
   #TODO koristiti stvari iz util functions skripte
   
   grid <- createGrid("Croatia", cell_size, worldmap)
   
-  poi_point <- createSFPoint(lat_poi, lon_poi)
-  test_point <- createSFPoint(lat_test, lon_test)
+  df_test_point <- data.frame(lat_test = lat_test, lon_test = lon_test, name = "test point")
   
-  S <- coverageAOI(grid, poi_point, radius, cell_size, n)
+  input = list ("lon_poi" = lon_poi,
+                "lat_poi" = lat_poi,
+                "radius" = radius,
+                "cell_size" = cell_size,
+                "n" = n,
+                "k" = k,
+                "algorithm" = "murmur32",
+                "m" = m)
   
-  buffer <- st_buffer(poi_point, radius) # defines a circle around the POI
-  
-  output$map <- renderTmap({
-    tm_shape(S)+
-      tm_fill(col="label", alpha = 0.45)+
-      tm_polygons("blue", alpha = 0)+
-      tm_shape(buffer)+tm_borders("red")+
-      tm_shape(poi_point)+tm_dots("red")+
-      tm_shape(test_point)+tm_dots("blue")
-  })
-
-  sbf_vector <- createSBF(k, algorithms[1], S, m)
-
-  output$SBF_label <- renderText({
-    paste("Label of that test point is: ",
-          checkIfPointIsInSBF(grid,
-                      test_point,
-                      sbf_vector$b_vector,
-                      sbf_vector$H
-          )$result
-    )
-  })
+  testPoints(df_test_point, grid, input, output)
 }
 
 server <- function(input, output, session) {
@@ -96,9 +94,9 @@ server <- function(input, output, session) {
     
     output$error_text <- renderText({})
     
-    o_gird <- createGrid(input$country, input$cell_size, worldmap)
+    grid <- createGrid(input$country, input$cell_size, worldmap)
     
-    bounds <- getBounds(o_gird)
+    bounds <- getBounds(grid)
     
     if(checkIfPointIsOutOfBounds(bounds, input$lat_poi, input$lon_poi))
     {
@@ -113,7 +111,7 @@ server <- function(input, output, session) {
 
     df_test_point <- data.frame(lat_test = input$lat_test, lon_test = input$lon_test, name = "test point")
     
-    testPoints(df_test_point, o_gird, input, output)
+    testPoints(df_test_point, grid, input, output)
     
   })
   
@@ -126,9 +124,9 @@ server <- function(input, output, session) {
     } else {
       output$error_text <- renderText({})
       
-      o_grid <- createGrid(input$country, input$cell_size, worldmap)
+      grid <- createGrid(input$country, input$cell_size, worldmap)
       
-      bounds <- getBounds(o_grid)
+      bounds <- getBounds(grid)
       
       test_points_ok <- FALSE
       
@@ -158,7 +156,7 @@ server <- function(input, output, session) {
       output$error_text <- renderText({point_error_txt})
       
       if (test_points_ok) {
-        testPoints(df_test_points, o_grid, input, output)
+        testPoints(df_test_points, grid, input, output)
       } else {
         output$error_text <- renderText({
           point_error_txt
@@ -171,28 +169,25 @@ server <- function(input, output, session) {
     
     output$error_text <- renderText({})
     
-    o_grid <- createGrid(input$country, input$cell_size, worldmap)
+    grid <- createGrid(input$country, input$cell_size, worldmap)
     
-    bounds <- getBounds(o_grid)
+    bounds <- getBounds(grid)
     
     rnd_test_points <- generateRandomPoints(bounds, input$num_rnd_points, input$randomGenerationModes, input$lon_poi, input$lat_poi, input$degRadius)
     
     
-    testPoints(rnd_test_points, o_grid, input, output)
-    
+    testPoints(rnd_test_points, grid, input, output)
   })
   
   observeEvent(input$goTst, {
     
     output$error_text <- renderText({})
     
-    o_grid <- createGrid(input$country, input$cell_size, worldmap)
+    grid <- createGrid(input$country, input$cell_size, worldmap)
     
-    test_k_and_m(input, o_grid)
+    test_k_and_m(input, grid)
     
   })
 }
 
-
-# Run the app ----
 shinyApp(ui = ui, server = server)

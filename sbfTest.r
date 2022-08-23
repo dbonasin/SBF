@@ -140,11 +140,9 @@ for (algorithm in algorithms) {
     ########################
     source("spatialBF.r")
     insert_start <- Sys.time()
-    b_vec_and_c_mat <- insert(S,H,m)
+    b_vector <- insert(S,H,m)
     insert_end <- Sys.time()
     
-    b_vector <- b_vec_and_c_mat$b_vector
-    # col_mat <- b_vec_and_c_mat$col_mat
     insertion_counter <- b_vec_and_c_mat$insertion_counter
     
     test_results <- test(S2, H, b_vector)
@@ -184,8 +182,7 @@ for (k in k_seq) {
     # Create SBF
     ########################
     source("spatialBF.r")
-    b_vec_and_c_mat <- insert(S,H,m)
-    b_vector <- b_vec_and_c_mat$b_vector
+    b_vector <- insert(S,H,m)
     results <- test(S2, H, b_vector)
     
     accuracy[id, "num_of_k"] <- k

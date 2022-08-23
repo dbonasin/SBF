@@ -90,35 +90,6 @@ getBounds <- function(grid){
   return(return_list)
 }
 
-# Calls function for crating set of hash functions necessary for creation of the SBF filter and
-# a function for creating SBF vector.
-# 
-# Parameters
-# ----------
-# k : numeric
-#   number of hash algorithms
-# algorithm : string
-#   which algorithm should be used for hashing
-# S : data.frame
-#   area for which we want to create SBF vector
-# m : numeric
-#   size of the SBF vector 
-# 
-# Returns
-# -------
-# list
-#   a list with SBF vector, collision matrix and set of hash functions used to create SBF filter
-createSBF <- function(k, algorithm, S, m){
-  H <- generateHashSetSalts(k, algorithm)
-  
-  b_vec_and_c_mat <- insert(S, H, m)
-  return_list <- list("b_vector" = b_vec_and_c_mat$b_vector,
-                      "col_mat" = b_vec_and_c_mat$col_mat,
-                      "H" = H
-  )
-  return(return_list)
-}
-
 # Checks in which area is the cell
 # 
 # Parameters
@@ -137,12 +108,12 @@ createSBF <- function(k, algorithm, S, m){
 # list
 #   a list with a cell and a number of the area the test_point is located
 checkIfPointIsInSBF <- function(grid, test_point, b_vector, H){
+  
   grid$has_test_point <- ifelse(sf::st_intersects(grid, test_point, sparse = F),
                                 "Yes",
                                 "No")
   cell <- grid[which(grid$has_test_point == "Yes"),]
   result <- check(b_vector, H, cell$ID)
-  
   return_list <- list("cell" = cell, 
                       "result" = result 
   )
@@ -209,7 +180,8 @@ checkIfPointsAreInSBF <- function(grid, n, S, H, b_vector, df_test_points){
 # data.frame
 #   a data frame with random points generated with normal distribution centered around point of interest
 normGenerator <- function(num_rnd_points, lon, lat, degRadius){
-  rlon <- rnorm(num_rnd_points, mean=lon, sd=degRadius) # longitudinal degree error adjusted for latitude
+  
+  rlon <- rnorm(num_rnd_points, mean=lon, sd=degRadius) # 
   rlat <- rnorm(num_rnd_points, mean=lat, sd=degRadius) # mean and standard deviation in degrees
   df_test_points <- cbind.data.frame(longitude=rlon, latitude=rlat)
   names(df_test_points)[1] <- "lon_test"
@@ -419,23 +391,14 @@ test_k_and_m <- function(input, grid){
   S2 <- testAOI(grid, input$cell_size, S)
   k_seq <- 1:30
   m_seq <- seq(300, 600, by=20)
-  # k_seq <- 1:3
-  # m_seq <- seq(500, 600, by=20)
   accuracy <- data.frame(id = 1:(length(k_seq) * length(m_seq)))
   id = 1
   
   message("Testing k and m\n")
   for (k in k_seq) {
-    # Generate a set of hashes
-    ###########################
-    # source("hashGeneration.r")
     H <- generateHashSetSalts(k, input$algorithm)
     for (m in m_seq) {
-      # Create SBF
-      ########################
-      # source("spatialBF.r")
-      b_vec_and_c_mat <- insert(S,H,m)
-      b_vector <- b_vec_and_c_mat$b_vector
+      b_vector <- insert(S,H,m)
       results <- test(S2, H, b_vector) # <- problem with S2, možda da stavim tu taj test i da stavim da koristi random točke
       
       accuracy[id, "num_of_k"] <- k
@@ -449,7 +412,7 @@ test_k_and_m <- function(input, grid){
     }
   }
   message("Writing results in file\n")
-  write.csv(accuracy,paste("[MAD_method]grid_search_for_k_and_m(radius=",input$radius,", algorithm=",input$algorithm,").csv", sep=""), row.names = FALSE)
+  write.csv(accuracy,paste("grid_search_for_k=",k,"_and_m",m,"(r=",input$radius,", algorithm=",input$algorithm,").csv", sep=""), row.names = FALSE)
   message("Done\n")
 }
 

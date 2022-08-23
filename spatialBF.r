@@ -1,4 +1,7 @@
 library(digest)
+
+source("hashGeneration.r")
+
 # Creates a SBF vector
 # 
 # Parameters
@@ -19,31 +22,16 @@ insert <- function(S, H, size){
   
   #initialise SBF vector
   b_vector <- integer(size)
-  insertion_counter <- integer(size)
-  
-  # collision matrix: rows is the old value and the columns is new value
-  col_mat <- matrix(0, nrow = length(labels), ncol =  length(labels))
-  colnames(col_mat) <- 1:length(labels)
-  rownames(col_mat) <- 1:length(labels)
   
   for (label in labels) {
     for (element in S[S$label == label,]$ID) {
       for (h in H) {
         id <- as.integer(paste("0x",substr(h(element), 1, 4), sep=""))%%size + 1
-        if(b_vector[id] != 0){
-          col_mat[b_vector[id],label] <- col_mat[b_vector[id],label] + 1
-        }
-        
-        insertion_counter[id] <- insertion_counter[id] + 1
         b_vector[id] <- label
-        
-        if (id == 0) cat("id: ", id, "b_vector[id]: ", b_vector[id], "\n")
       }
     }
   }
-  
-  return_list <- list("b_vector" = b_vector, "col_mat" = col_mat, "insertion_counter" = insertion_counter)
-  return(return_list)
+  return(b_vector)
 }
 
 # Checks if the element is in SBF vector
@@ -70,9 +58,36 @@ check <- function(b_vector, H, element){
       return(0)
     } else {
       if (b_vector[id] < i) i <- b_vector[id]
-       
     }
   }
   return(i)
 }
+
+
+# Calls function for crating set of hash functions necessary for creation of the SBF filter and
+# a function for creating SBF vector.
+# 
+# Parameters
+# ----------
+# k : numeric
+#   number of hash algorithms
+# algorithm : string
+#   which algorithm should be used for hashing
+# S : data.frame
+#   area for which we want to create SBF vector
+# m : numeric
+#   size of the SBF vector 
+# 
+# Returns
+# -------
+# list
+#   a list with SBF vector, collision matrix and set of hash functions used to create SBF filter
+createSBF <- function(k, algorithm, S, m){
+  H <- generateHashSetSalts(k, algorithm)
+  return_list <- list("b_vector" = insert(S, H, m),
+                      "H" = H
+  )
+  return(return_list)
+}
+
 
