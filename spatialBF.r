@@ -17,7 +17,7 @@ library(digest)
 #   a list with SBF vector, collision matrix and vector of how many times it was written in each field
 insert <- function(S, H, size){
   labels <- sort(unique(S$label))
-  
+  size <- 2^size
   #initialise SBF vector
   b_vector <- integer(size)
   insertion_counter <- integer(size)

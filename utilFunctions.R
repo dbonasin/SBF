@@ -418,7 +418,7 @@ test_k_and_m <- function(input, grid){
   message("Creating S2\n")
   S2 <- testAOI(grid, input$cell_size, S)
   k_seq <- 1:30
-  m_seq <- seq(300, 600, by=20)
+  m_seq <- 5:10
   # k_seq <- 1:3
   # m_seq <- seq(500, 600, by=20)
   accuracy <- data.frame(id = 1:(length(k_seq) * length(m_seq)))
@@ -439,7 +439,7 @@ test_k_and_m <- function(input, grid){
       results <- test(S2, H, b_vector) # <- problem with S2, možda da stavim tu taj test i da stavim da koristi random točke
       
       accuracy[id, "num_of_k"] <- k
-      accuracy[id, "size_of_vector"] <- m
+      accuracy[id, "size_of_vector"] <- 2^m
       accuracy[id, "diff"] <- results$accuracy
       accuracy[id, "lower_label"] <- results$lower_label
       accuracy[id, "higher_label"] <- results$higher_label

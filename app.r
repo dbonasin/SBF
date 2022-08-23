@@ -29,7 +29,7 @@ radius <- 25000 # radius
 ## SBF settings
 n <- 3 # areas of interest
 k <- 10 # amount of hash functions
-m <- 800 # size of SBF
+m <- 10 # size of SBF (2^m)
 
 # Size of grid cell
 cell_size <- 0.1 # in degrees of longitude and latitude
@@ -170,7 +170,6 @@ server <- function(input, output, session) {
     o_grid <- createGrid(input$country, input$cell_size, worldmap)
     
     bounds <- getBounds(o_grid)
-    message("banana")
     
     rnd_test_points <- generateRandomPoints(bounds, input$num_rnd_points, input$randomGenerationModes, input$lon_poi, input$lat_poi, input$degRadius)
     
