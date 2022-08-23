@@ -1,5 +1,4 @@
 library(digest)
-# TODO odlučiti pustiti ovaj mad ili ne (možda dopustiti da je povećanje polja moguće samo za potenciju broja 2 i onda uštimati a i b)
 # Creates a SBF vector
 # 
 # Parameters
@@ -30,8 +29,7 @@ insert <- function(S, H, size){
   for (label in labels) {
     for (element in S[S$label == label,]$ID) {
       for (h in H) {
-        # id <- as.integer(paste("0x",substr(h(element), 1, 4), sep=""))%%size + 1
-        id <- mad_compress_function(h(element), size)
+        id <- as.integer(paste("0x",substr(h(element), 1, 4), sep=""))%%size + 1
         if(b_vector[id] != 0){
           col_mat[b_vector[id],label] <- col_mat[b_vector[id],label] + 1
         }
@@ -67,8 +65,7 @@ check <- function(b_vector, H, element){
   i <- max(b_vector)
   size <- length(b_vector)
   for (h in H) {
-    # id <- as.integer(paste("0x",substr(h(element), 1, 4), sep=""))%%size + 1
-    id <- mad_compress_function(h(element), size)
+    id <- as.integer(paste("0x",substr(h(element), 1, 4), sep=""))%%size + 1
     if (b_vector[id] == 0){
       return(0)
     } else {

@@ -55,6 +55,7 @@ country_names <- c("Croatia",
 ui <- ui(country_names, cell_size, lon_poi, lat_poi, lat_test, lon_test, radius, n, algorithms, k, m, num_rnd_points, randomGenerationModes, degRadius, num_iter)
 
 render_initial_map <- function(output){
+  #TODO koristiti stvari iz util functions skripte
   
   grid <- createGrid("Croatia", cell_size, worldmap)
   
@@ -118,7 +119,10 @@ server <- function(input, output, session) {
   
   observeEvent(input$goCSV, {
     if (length(input$csvFiles$datapath) == 0){
-      output$error_text <- renderText({"Please sepcify CSV file path."})
+      output$error_text <- renderText({paste("<font color=\"#FF0000\">",
+                                             "Please sepcify CSV file path."
+                                             )
+        })
     } else {
       output$error_text <- renderText({})
       
@@ -170,7 +174,6 @@ server <- function(input, output, session) {
     o_grid <- createGrid(input$country, input$cell_size, worldmap)
     
     bounds <- getBounds(o_grid)
-    message("banana")
     
     rnd_test_points <- generateRandomPoints(bounds, input$num_rnd_points, input$randomGenerationModes, input$lon_poi, input$lat_poi, input$degRadius)
     

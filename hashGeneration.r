@@ -48,10 +48,3 @@ generateHashSetSalts <- function(num_hashes, hash_alg){
   result <- lapply(salts, function(salt, hash_alg) {force(salt); function(area) return(digest(c(area, salt), hash_alg))}, hash_alg=hash_alg)#murmur32
   return(result)
 }
-
-mad_compress_function <- function(hash, vector_length){
-  p <- 479001599 # p needs to be bigger than vector_length and it must be prime number
-  a <- 3
-  b <- 5
-  return(((a*as.integer(paste("0x",substr(hash, 1, 4), sep="")) + b)%%p)%%vector_length + 1)
-}
