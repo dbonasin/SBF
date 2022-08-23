@@ -1,32 +1,20 @@
 rm(list=ls())
 
-package <- require("sf")
-if (!package) install.packages("sf")
-package <- require("tmap")
-if (!package) install.packages("tmap")
-package <- require("tmaptools")
-if (!package) install.packages("tmaptools")
-package <- require("rnaturalearth")
-if (!package) install.packages("rnaturalearth")
-package <- require("dplyr")
-if (!package) install.packages("dplyr")
+library(sf)
+library(tmap)
+library(tmaptools)
+library(rnaturalearth)
 
 # n represents how many areas of interest the program will make
-n <- 6
+n <- 3
 # k represents number of hash functions
-k <- 10
+k <- 9
 # m represents size of the SBF vector
-m <- 400
+m <- 610
 # radius is in meters
 radius <- 25000
 # cell_size represents degrees of longitude and latitude
 cell_size <- 0.1
-
-# Calculating probability, optimal amount of hash functions and 
-# optimal size of bloom filter vector
-# source("statistics.r")
-# calculated_p <- calculateP(k, m, n)
-
 
 # Amfiteatar in Pula: 44.873084, 13.850165
 long <- 13.850165
@@ -52,7 +40,23 @@ S <- coverageAOI(grid, point, radius, cell_size, n)
 buffer <- st_buffer(point, radius)
 
 tmap_mode("view")
-tm_shape(S)+tm_fill(col="label", alpha = 0.45)+tm_polygons("blue", alpha = 0)+
+tm_shape(grid)+tm_borders()+
+tm_shape(S)+tm_polygons("intersects_buffer", alpha = 0.65, legend.show = FALSE)+
+  tm_shape(buffer)+tm_borders("red")+
+  tm_shape(point)+tm_dots("red")
+  
+tmap_mode("view")
+tm_shape(S)+tm_fill(alpha = 0.65)+tm_polygons(col = "blue", alpha = 0)+tm_text("manDist")+
+  tm_shape(buffer)+tm_borders("red")+
+  tm_shape(point)+tm_dots("red")
+
+tmap_mode("view")
+tm_shape(S)+tm_fill(alpha = 0.65)+tm_polygons(col = "blue", alpha = 0)+tm_text("label")+
+  tm_shape(buffer)+tm_borders("red")+
+  tm_shape(point)+tm_dots("red")
+
+tmap_mode("view")
+tm_shape(S)+tm_fill(col="label", alpha = 0.45)+tm_polygons(col = "blue", alpha = 0)+
   tm_shape(buffer)+tm_borders("red")+
   tm_shape(point)+tm_dots("red")
 
@@ -71,7 +75,10 @@ test <- function(S, H, b_vector){
   
   for (i in 1:nrow(S)) {
     label <- S[i,]$label
+    
+    check_start <- Sys.time()
     result <- check(b_vector, H, S[i,]$ID)
+    check_end <- Sys.time()
     
     mat[label + 1,result + 1] <- mat[label + 1,result + 1] + 1
     if (result == label) correct <- correct + 1
@@ -97,17 +104,33 @@ test <- function(S, H, b_vector){
   # cat("Guessed lower label", lower_label, "/", nrow(S), "\n")
   # cat("Should be 0:", should_be_zero, "/", nrow(S), "\n")
   # return(nrow(S) - correct)
-  return_list <- list("accuracy" = nrow(S) - correct, "higher_label" = higher_label, "lower_label" = lower_label, "should_be_zero" = should_be_zero)
+  return_list <- list("accuracy" = nrow(S) - correct, "higher_label" = higher_label, "lower_label" = lower_label, "should_be_zero" = should_be_zero, "check_time" = difftime(check_end, check_start, units = "secs"[[1]]))
   return(return_list)
 }
 
+num_of_tests <- 500
 S2 <- testAOI(grid, cell_size, S)
 algorithms <- c("murmur32", "md5", "sha512", 'sha1', 'sha256', 'crc32', 'xxhash32','spookyhash')
-df <- data.frame(id = 1:500)
+alogrithms_delta_df <- data.frame(id = 1:num_of_tests)
+
 for (algorithm in algorithms) {
   print(algorithm)
   v <- c()
-  for (i in 1:500) {
+  
+  algorithms_distribution_df <- data.frame(id = 1:num_of_tests)
+  for (i in 1:(m + 2)) {
+    if(i < (m + 1)){
+      algorithms_distribution_df[as.character(i)] <- NA
+    }
+    else if(i == (m + 1)){
+      algorithms_distribution_df["insert_time"] <- NA
+    }
+    else if(i == (m + 2)){
+      algorithms_distribution_df["test_time"] <- NA
+    }
+  }
+  
+  for (i in 1:num_of_tests) {
     # Generate a set of hashes
     ###########################
     source("hashGeneration.r")
@@ -116,30 +139,40 @@ for (algorithm in algorithms) {
     # Create SBF
     ########################
     source("spatialBF.r")
+    insert_start <- Sys.time()
     b_vec_and_c_mat <- insert(S,H,m)
+    insert_end <- Sys.time()
+    
     b_vector <- b_vec_and_c_mat$b_vector
     # col_mat <- b_vec_and_c_mat$col_mat
+    insertion_counter <- b_vec_and_c_mat$insertion_counter
     
-    v <- c(v, test(S2, H, b_vector))
+    test_results <- test(S2, H, b_vector)
+    
+    v <- c(v, test_results$accuracy)
+    
+    algorithms_distribution_df[i,] <- c(i, insertion_counter, difftime(insert_end, insert_start, units = "secs"[[1]]), test_results$check_time)
   }
-  df[algorithm] <- v
+  write.csv(algorithms_distribution_df, paste("distributions", paste(algorithm, "distribution_1.csv", sep = "_"), sep = "/"), row.names = FALSE)
+  matplot(t(subset(algorithms_distribution_df, select = -c(id, insert_time, test_time))), type = "b")
+  alogrithms_delta_df[algorithm] <- v
 }
 
-plot(df$id, df$murmur32, type = "l", col = 1,ylim = c(0,20))
-lines(df$id, df$md5, type = "l", col = 2)
-lines(df$id, df$sha512, type = "l", col = 3)
+plot(alogrithms_delta_df$id, alogrithms_delta_df$murmur32, type = "l", col = 1,ylim = c(0,20))
+lines(alogrithms_delta_df$id, alogrithms_delta_df$md5, type = "l", col = 2)
+lines(alogrithms_delta_df$id, alogrithms_delta_df$sha512, type = "l", col = 3)
 legend(2, 20, legend=algorithms,
        col=1:length(algorithms), lty=1, cex=0.8)
 
-write.csv(df,"hash_algorithms_delta.csv", row.names = FALSE)
+write.csv(alogrithms_delta_df,"hash_algorithms_delta_1.csv", row.names = FALSE)
 
-boxplot(df$murmur32, df$md5, df$sha512, df$sha1, df$sha256, df$crc32, df$xxhash32, df$spookyhash, names = algorithms, xlab="hash algorithms",
+boxplot(alogrithms_delta_df$murmur32, alogrithms_delta_df$md5, alogrithms_delta_df$sha512, alogrithms_delta_df$sha1, alogrithms_delta_df$sha256, alogrithms_delta_df$crc32, alogrithms_delta_df$xxhash32, alogrithms_delta_df$spookyhash, names = algorithms, xlab="hash algorithms",
         ylab="difference between all fields and correctly guessed fields")
 
 # Trying different values for m and k
 ###########################################
 k_seq <- 1:30
-m_seq <- seq(10, 1010, by=100)
+m_seq <- seq(100, 600, by=20)
 accuracy <- data.frame(id = 1:(length(k_seq) * length(m_seq)))
 id = 1
 for (k in k_seq) {
@@ -165,8 +198,8 @@ for (k in k_seq) {
     id <- id + 1
   }
 }
-write.csv(accuracy,"grid_search_for_k_and_m.csv", row.names = FALSE)
-
+write.csv(accuracy,paste("grid_search_for_k_and_m(radius=",radius,").csv", sep=""), row.names = FALSE)
+accuracy <- read.csv("grid_search_for_k_and_m.csv")
 require("dplyr")
 optimal <- accuracy %>% group_by(num_of_k) %>% filter(diff == 0) %>% slice_min(order_by = size_of_vector)
 plot(optimal$num_of_k, optimal$size_of_vector, type = "l", col = 1)

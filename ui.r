@@ -1,4 +1,4 @@
-ui <- function(country_names, cell_size, lon_poi, lat_poi, lat_test, lon_test, radius, n, algorithms, k, m){
+ui <- function(country_names, cell_size, lon_poi, lat_poi, lat_test, lon_test, radius, n, algorithms, k, m, num_rnd_points, randomGenerationModes, degRadius, num_iter){
   
   ui_card_style <- '/* Change background color */
                     background-color: white;
@@ -92,8 +92,6 @@ ui <- function(country_names, cell_size, lon_poi, lat_poi, lat_test, lon_test, r
             )
         ),
         
-        actionButton("go","Submit"),
-        
         div(style=ui_card_style,
             
             h3("Select file with multiple test points."),
@@ -103,15 +101,53 @@ ui <- function(country_names, cell_size, lon_poi, lat_poi, lat_test, lon_test, r
                       multiple = TRUE,
                       buttonLabel = "Browse...",
                       placeholder = "No file selected"
-                      ),
-            
-            actionButton("goCSV","Test multiple")
             )
-      ),
+            
+        ),
+        
+        div(style=ui_card_style,
+            
+            h3("Generate and test random number of points"),
+            
+            numericInput("num_rnd_points", 
+                         h5("Enter number of random points"),
+                         value = num_rnd_points
+            ),
+            
+            selectInput("randomGenerationModes", 
+                        h5("Choose mode for generating the spatial points"),
+                        choices = randomGenerationModes,
+                        selected = "Mode"
+            ),
+            
+            numericInput("degRadius", 
+                         h5("Enter the radius in degrees (Only for Normal distrubution mode)"),
+                         value = degRadius
+            )
+        ),
+        div(style=ui_card_style,
+            
+            h3("Other")
+            
+            # numericInput("num_iter", 
+            #              h5("Enter number of iterations"),
+            #              value = num_iter
+            # ),
+            # TODO add to save file(filename), step, beginning and end of iteration...
+            
+            
+        )
       
+      ),
+    
       mainPanel(
+        actionButton("go","Test single point"),
+        actionButton("goCSV","Test points from csv file"),
+        actionButton("goRnd","Test random points"),
+        actionButton("goTst","Test k and m"),
         htmlOutput("SBF_label"),
         htmlOutput("error_text"),
+        tableOutput('confusion_matrix'), 
         
         tmapOutput("map")
       )

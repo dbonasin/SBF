@@ -1,4 +1,8 @@
-source("installNecessaryLibraries.r")
+library(sf)
+library(raster)
+library(fasterize)
+library(tmaptools)
+library(rnaturalearth)
 
 coverageAOI <- function(grid, point, radius, size_of_cell, partition_count){
   # buffer is circle around the center point
@@ -65,7 +69,7 @@ partitionAOI <- function(S, partition_count){
 testAOI <- function(grid, size_of_cell, S){
   # It takes 80% of random cells from whole grid for testing
   num_of_rows <- nrow(grid)
-  grid[sample(num_of_rows, num_of_rows * 1), ]
+  grid[sample(num_of_rows, num_of_rows * 0.8), ]
   
   grid["label"] <- 0
   

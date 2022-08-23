@@ -1,9 +1,6 @@
-package <- require("digest")
-if (!package) install.packages("digest")
-package <- require("data.table")
-if (!package) install.packages("data.table")
-package <- require("readr")
-if (!package) install.packages("readr")
+library(digest)
+library(data.table)
+library(readr)
 
 #Generate seeds
 generateSeeds <- function(num_seeds){
@@ -20,26 +17,25 @@ generateHashSet <- function(num_hashes){
   return(result)
 }
 
-# readSalts <- function(num_hashes){
-#   file <- "salts.txt"
-#   
-#   if (file.exists(file)) {
-#     cat("The file salts.txt exists")
-#     salts <- readLines(file)
-#     
-#     if(length(salts) != num_hashes){
-#       salts <- generateSalts(num_hashes)
-#       fwrite(list(salts), file = file)
-#     }
-#     
-#     return(salts)
-#   } else {
-#     file.create(file)
-#     salts <- generateSalts(num_hashes)
-#     fwrite(list(salts), file = file)
-#     return(salts)
-#   }
-# }
+readSalts <- function(num_hashes){
+  file <- "salts.txt"
+
+  if (file.exists(file)) {
+    salts <- readLines(file)
+
+    if(length(salts) != num_hashes){
+      salts <- generateSalts(num_hashes)
+      fwrite(list(salts), file = file)
+    }
+
+    return(salts)
+  } else {
+    file.create(file)
+    salts <- generateSalts(num_hashes)
+    fwrite(list(salts), file = file)
+    return(salts)
+  }
+}
 
 # Generate salts
 generateSalts <- function(num_salts){
@@ -48,7 +44,14 @@ generateSalts <- function(num_salts){
 }
 
 generateHashSetSalts <- function(num_hashes, hash_alg){
-  salts <- generateSalts(num_hashes)
+  salts <- readSalts(num_hashes)
   result <- lapply(salts, function(salt, hash_alg) {force(salt); function(area) return(digest(c(area, salt), hash_alg))}, hash_alg=hash_alg)#murmur32
   return(result)
+}
+
+mad_compress_function <- function(hash, vector_length){
+  p <- 479001599 # p needs to be bigger than vector_length and it must be prime number
+  a <- 3
+  b <- 5
+  return(((a*as.integer(paste("0x",substr(hash, 1, 4), sep="")) + b)%%p)%%vector_length + 1)
 }
