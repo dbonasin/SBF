@@ -35,8 +35,6 @@ manhattanDistanceAOI <- function(S){
   x <- S[which(S$has_center == "Yes"),]$X
   y <- S[which(S$has_center == "Yes"),]$Y
   
-  label <- c()
-  element <- c()
   S["manDist"] <- NA
 
   for (i in 1:nrow(S)) {

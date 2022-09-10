@@ -1,21 +1,7 @@
 library(digest)
+library(stringi)
 library(data.table)
 library(readr)
-
-#Generate seeds
-generateSeeds <- function(num_seeds){
-  result <- c()
-  for (i in 1:num_seeds) {
-    result <- c(result, i)
-  }
-  return(result)
-}
-
-generateHashSet <- function(num_hashes){
-  seeds <- generateSeeds(num_hashes)
-  result <- lapply(seeds, function(i) {force(i); function(area) return(digest(area, "murmur32", seed = i))})#murmur32 
-  return(result)
-}
 
 readSalts <- function(num_hashes){
   file <- "salts.txt"
@@ -39,12 +25,11 @@ readSalts <- function(num_hashes){
 
 # Generate salts
 generateSalts <- function(num_salts){
-  a <- do.call(paste0, replicate(5, sample(LETTERS, num_salts, TRUE), FALSE))
-  return(paste0(a, sprintf("%04d", sample(9999, num_salts, TRUE)), sample(LETTERS, num_salts, TRUE)))
+  return(stri_rand_strings(num_salts, 5, pattern = "[A-Za-z0-9]"))
 }
 
 generateHashSetSalts <- function(num_hashes, hash_alg){
   salts <- readSalts(num_hashes)
-  result <- lapply(salts, function(salt, hash_alg) {force(salt); function(area) return(digest(c(area, salt), hash_alg))}, hash_alg=hash_alg)#murmur32
-  return(result)
+  H <- lapply(salts, function(salt, hash_alg) {force(salt); function(area) return(digest(c(area, salt), hash_alg))}, hash_alg=hash_alg)#murmur32
+  return(H)
 }

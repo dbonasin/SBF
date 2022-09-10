@@ -1,5 +1,3 @@
-library(digest)
-
 source("hashGeneration.r")
 
 # Creates a SBF vector
@@ -20,7 +18,7 @@ source("hashGeneration.r")
 insert <- function(S, H, size){
   labels <- sort(unique(S$label))
   
-  #initialise SBF vector
+  # initialise SBF vector
   b_vector <- integer(size)
   
   for (label in labels) {
@@ -62,7 +60,6 @@ check <- function(b_vector, H, element){
   }
   return(i)
 }
-
 
 # Calls function for crating set of hash functions necessary for creation of the SBF filter and
 # a function for creating SBF vector.
