@@ -321,10 +321,8 @@ testPoints <- function(df_test_points, grid, input, output, is_initial = FALSE){
           tm_shape(test_points)+tm_dots("blue")+tm_text("name", just = "top")
       })
       
-      output_text <- ""
-
       if(length(df_test_points[,1]) < 10){
-        
+        output_text <- ""
         for (i in 1:length(df_test_points[,1])) {
           output_text <- paste(output_text,
                                "<br>",
@@ -340,7 +338,7 @@ testPoints <- function(df_test_points, grid, input, output, is_initial = FALSE){
                                )
           )
         }
-        
+        output$SBF_label <- renderText({output_text})
       }
 
       confusion_mat<- checkIfPointsAreInSBF(grid,
@@ -368,7 +366,6 @@ testPoints <- function(df_test_points, grid, input, output, is_initial = FALSE){
         TP <- TP + confusion_mat[area, area]
         df_tn <- confusion_mat[-area, -area]
         df_dim <- dim(df_tn)
-        print(df_dim)
         if (is.null(df_dim)) {
           TN <- sum(unlist(df_tn))
         } else {
@@ -385,7 +382,7 @@ testPoints <- function(df_test_points, grid, input, output, is_initial = FALSE){
         acc <- (TP+TN)/(TP+TN+FP+FN)
         recall <- TP/(TP+FN)
         precision <- TP/(TP+FP)
-        F1 <- (2 * precision * recall) / (precision + recall)
+        F1_micro <- (2 * precision * recall) / (precision + recall)
         type_1_error <- FP/(FP+TN)
         type_2_error <- FN/(FN+TP)
         
@@ -393,45 +390,29 @@ testPoints <- function(df_test_points, grid, input, output, is_initial = FALSE){
         if(TP == 0 & FP == 0 & FN == 0){
           recall <- 1
           precision <- 1
-          F1 <- 1
+          F1_micro <- 1
         } else if(TP == 0 & ((FP == 0 & FN > 0) | (FP  > 0 & FN == 0))){
           recall <- 0
           precision <- 0
-          F1 <- 0
+          F1_micro <- 0
         }
-        if (is.nan(type_1_error) & F1 == 1){
+        if (is.nan(type_1_error) & F1_micro == 1){
           type_1_error = 0
         }
-        if (is.nan(type_2_error) & F1 == 1){
+        if (is.nan(type_2_error) & F1_micro == 1){
           type_2_error = 0
         }
         df_F1[nrow(df_F1) + 1,] <- c(area - 1,
                                   acc,
                                   recall,
                                   precision,
-                                  F1,
+                                  F1_micro,
                                   type_1_error,
                                   type_2_error)
-        output_text <- paste0(output_text,
-                       " <br> ",
-                       "Area: ",
-                       area - 1,
-                       "; accuracy: ",
-                       acc,
-                       "; recall: ",
-                       recall,
-                       "; precision: ",
-                       precision,
-                       "; F1: ",
-                       F1,
-                       "; type 1 error: ",
-                       type_1_error,
-                       "; type 2 error: ",
-                       type_2_error
-                       )
       }
+      df_F1_micro_colSums <- colSums(df_F1)
+      df_F1$F1_makro <- df_F1_micro_colSums[[5]]/(input$n + 1)
 
-      output$SBF_label <- renderText({output_text})
       output$confusion_matrix <- renderTable({
         confusion_mat[] <- lapply(confusion_mat, as.character)
         confusion_mat

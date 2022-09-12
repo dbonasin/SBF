@@ -155,7 +155,7 @@ server <- function(input, output, session) {
                                                       df_test_points[i,]$lat_test,
                                                       df_test_points[i,]$lon_test
                                                       )
-        if (is_point_out_of_bounds)
+        if (is_out_of_bounds)
         {
           point_error_txt <- paste(point_error_txt,
                                    # createWarningStringForOutOfBoundsPoint(df_test_points[i,]$name,
