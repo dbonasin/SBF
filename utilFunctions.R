@@ -356,7 +356,7 @@ testPoints <-
             )
           )
         }
-        
+        output$SBF_label <- renderText({output_text})
       }
       
       confusion_mat <- checkIfPointsAreInSBF(grid,
@@ -384,7 +384,6 @@ testPoints <-
         TP <- TP + confusion_mat[area, area]
         df_tn <- confusion_mat[-area, -area]
         df_dim <- dim(df_tn)
-        print(df_dim)
         if (is.null(df_dim)) {
           TN <- sum(unlist(df_tn))
         } else {
@@ -398,44 +397,42 @@ testPoints <-
         }
         print(paste0("TP ", TP, "; TN ", TN, "; FP ", FP, "; FN ", FN))
         
-        acc <- (TP + TN) / (TP + TN + FP + FN)
-        recall <- TP / (TP + FN)
-        precision <- TP / (TP + FP)
-        F1 <- (2 * precision * recall) / (precision + recall)
-        type_1_error <- FP / (FP + TN)
-        type_2_error <- FN / (FN + TP)
+        acc <- (TP+TN)/(TP+TN+FP+FN)
+        recall <- TP/(TP+FN)
+        precision <- TP/(TP+FP)
+        F1_micro <- (2 * precision * recall) / (precision + recall)
+        type_1_error <- FP/(FP+TN)
+        type_2_error <- FN/(FN+TP)
         
         # edge cases which could cause division by 0
         if (TP == 0 & FP == 0 & FN == 0) {
           recall <- 1
           precision <- 1
-          F1 <- 1
-        } else if (TP == 0 &
-                   ((FP == 0 & FN > 0) |
-                    (FP  > 0 & FN == 0))) {
+          F1_micro <- 1
+        } else if(TP == 0 & ((FP == 0 & FN > 0) | (FP  > 0 & FN == 0))){
           recall <- 0
           precision <- 0
-          F1 <- 0
+          F1_micro <- 0
         }
-        if (is.nan(type_1_error) & F1 == 1) {
+
+        if (is.nan(type_1_error) & F1_micro == 1){
           type_1_error = 0
         }
-        if (is.nan(type_2_error) & F1 == 1) {
+        if (is.nan(type_2_error) & F1_micro == 1){
           type_2_error = 0
         }
         df_F1[nrow(df_F1) + 1,] <- c(area - 1,
-                                     acc,
-                                     recall,
-                                     precision,
-                                     F1,
-                                     type_1_error,
-                                     type_2_error)
-        
+                                  acc,
+                                  recall,
+                                  precision,
+                                  F1_micro,
+                                  type_1_error,
+                                  type_2_error)
       }
+      df_F1_micro_colSums <- colSums(df_F1)
+      df_F1$F1_makro <- df_F1_micro_colSums[[5]]/(input$n + 1)
+
       
-      output$SBF_label <- renderText({
-        output_text
-      })
       output$confusion_matrix <- renderTable({
         confusion_mat[] <- lapply(confusion_mat, as.character)
         confusion_mat

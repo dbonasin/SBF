@@ -149,9 +149,10 @@ server <- function(input, output, session) {
       
       for (i in 1:length(df_test_points[, 1])) {
         is_out_of_bounds <- checkIfPointIsOutOfBounds(bounds,
-                                                      df_test_points[i, ]$lat_test,
-                                                      df_test_points[i, ]$lon_test)
-        if (is_point_out_of_bounds)
+                                                      df_test_points[i,]$lat_test,
+                                                      df_test_points[i,]$lon_test
+                                                      )
+        if (is_out_of_bounds)
         {
           point_error_txt <- paste(
             point_error_txt,
