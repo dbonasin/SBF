@@ -1,7 +1,7 @@
 source("hashGeneration.r")
 
 # Creates a SBF vector
-# 
+#
 # Parameters
 # ----------
 # S : data.frame
@@ -15,16 +15,20 @@ source("hashGeneration.r")
 # -------
 # list
 #   a list with SBF vector, collision matrix and vector of how many times it was written in each field
-insert <- function(S, H, size){
+insert <- function(S, H, size) {
   labels <- sort(unique(S$label))
   
   # initialise SBF vector
   b_vector <- integer(size)
   
   for (label in labels) {
-    for (element in S[S$label == label,]$ID) {
+    for (element in S[S$label == label, ]$ID) {
       for (h in H) {
-        id <- as.integer(paste("0x",substr(h(element), 1, 4), sep=""))%%size + 1
+        id <- as.integer(paste("0x",
+                               substr(h(element),
+                                      1,
+                                      4),
+                               sep = "")) %% size + 1
         b_vector[id] <- label
       }
     }
@@ -33,7 +37,7 @@ insert <- function(S, H, size){
 }
 
 # Checks if the element is in SBF vector
-# 
+#
 # Parameters
 # ----------
 # b_vector : vector
@@ -47,15 +51,20 @@ insert <- function(S, H, size){
 # -------
 # numeric
 #   ID of the area that contains the element
-check <- function(b_vector, H, element){
+check <- function(b_vector, H, element) {
   i <- max(b_vector)
   size <- length(b_vector)
   for (h in H) {
-    id <- as.integer(paste("0x",substr(h(element), 1, 4), sep=""))%%size + 1
-    if (b_vector[id] == 0){
+    id <- as.integer(paste("0x",
+                           substr(h(element),
+                                  1,
+                                  4),
+                           sep = "")) %% size + 1
+    if (b_vector[id] == 0) {
       return(0)
     } else {
-      if (b_vector[id] < i) i <- b_vector[id]
+      if (b_vector[id] < i)
+        i <- b_vector[id]
     }
   }
   return(i)
@@ -63,7 +72,7 @@ check <- function(b_vector, H, element){
 
 # Calls function for crating set of hash functions necessary for creation of the SBF filter and
 # a function for creating SBF vector.
-# 
+#
 # Parameters
 # ----------
 # k : numeric
@@ -73,18 +82,14 @@ check <- function(b_vector, H, element){
 # S : data.frame
 #   area for which we want to create SBF vector
 # m : numeric
-#   size of the SBF vector 
-# 
+#   size of the SBF vector
+#
 # Returns
 # -------
 # list
 #   a list with SBF vector, collision matrix and set of hash functions used to create SBF filter
-createSBF <- function(k, algorithm, S, m){
+createSBF <- function(k, algorithm, S, m) {
   H <- generateHashSetSalts(k, algorithm)
-  return_list <- list("b_vector" = insert(S, H, m),
-                      "H" = H
-  )
+  return_list <- list("b_vector" = insert(S, H, m), "H" = H)
   return(return_list)
 }
-
-
