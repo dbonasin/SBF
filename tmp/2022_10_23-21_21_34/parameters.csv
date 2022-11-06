@@ -1,0 +1,2 @@
+"country","cell_size","lat_test","lon_test","lon_poi","lat_poi","radius","n","k","algorithm","m","num_rnd_points","randomGenerationModes","degRadius"
+"Croatia",0.1,45.328979,14.457664,13.850165,44.873084,25000,3,7,"murmur32",307,10,"Normal",0.1

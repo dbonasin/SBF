@@ -1,3 +1,4 @@
+# Try to load the package, if there is no such package install it
 package <- require("sf")
 if (!package) install.packages("sf")
 package <- require("ggplot2")
@@ -26,3 +27,5 @@ package <- require("stringi")
 if (!package) install.packages("stringi")
 package <- require("stringr")
 if (!package) install.packages("stringr")
+package <- require("plot.matrix")
+if (!package) install.packages('plot.matrix')

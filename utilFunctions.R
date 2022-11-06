@@ -1,9 +1,12 @@
+library('plot.matrix')
+
 # Check if point is inside bounds of the grid
 #
 # Parameters
 # ----------
 # bounds : list
-#   list of the minimum longitude and maximum longitude, minimum latitude and maximum latitude
+#   list of the minimum longitude and maximum longitude, minimum latitude and
+#   maximum latitude
 # point_lat : numeric
 #   latitude of the point that is being checked
 # point_lon : numeric
@@ -12,7 +15,8 @@
 # Returns
 # -------
 # boolean
-#   a TRUE statement if the point is inside the bounds and a FALSE statement otherwise
+#   a TRUE statement if the point is inside the bounds and a FALSE statement
+#   otherwise
 checkIfPointIsOutOfBounds <-
   function(bounds, point_lat, point_lon) {
     return (
@@ -75,7 +79,8 @@ createGrid <- function(country_name, cell_size, worldmap) {
 # Returns
 # -------
 # list
-#   a list with the minimum longitude and maximum longitude, minimum latitude and maximum latitude
+#   a list with the minimum longitude and maximum longitude, minimum latitude
+#   and maximum latitude
 getBounds <- function(grid) {
   lons <- c()
   lats <- c()
@@ -115,10 +120,18 @@ getBounds <- function(grid) {
 # list
 #   a list with a cell and a number of the area the test_point is located
 checkIfPointIsInSBF <- function(grid, test_point, b_vector, H) {
+  
+  options(digits.secs = 6)
+  start_time <- Sys.time()
+  
   grid$has_test_point <-
     ifelse(sf::st_intersects(grid, test_point, sparse = F),
            "Yes",
            "No")
+  
+  end_time <- Sys.time()
+  message(paste0("Time for check intersect:", as.numeric(difftime(end_time, start_time, units="secs")) * 1000))
+  
   cell <- grid[which(grid$has_test_point == "Yes"),]
   result <- check(b_vector, H, cell$ID)
   return_list <- list("cell" = cell,
@@ -127,7 +140,8 @@ checkIfPointIsInSBF <- function(grid, test_point, b_vector, H) {
   return(return_list)
 }
 
-# Calls checkIfPointIsInSBF function for each point in the test set and writes the results in the confusion matrix.
+# Calls checkIfPointIsInSBF function for each point in the test set and writes
+# the results in the confusion matrix.
 #
 # Parameters
 # ----------
@@ -155,6 +169,9 @@ checkIfPointsAreInSBF <-
     rownames(confusion_mat) <- 0:n
     
     for (i in 1:length(df_test_points[, 1])) {
+      options(digits.secs = 6)
+      start_time <- Sys.time()
+      
       cell_and_result <- checkIfPointIsInSBF(
         grid,
         createSFPoint(df_test_points[i,]$lat_test,
@@ -172,6 +189,9 @@ checkIfPointsAreInSBF <-
       
       confusion_mat[correct_label + 1, result + 1] <-
         confusion_mat[correct_label + 1, result + 1] + 1
+      
+      end_time <- Sys.time()
+      message(paste0("Point :", i, " whole time:", as.numeric(difftime(end_time, start_time, units="secs")) * 1000))
     }
     
     df_confusion_mat <- as.data.frame(confusion_mat)
@@ -181,7 +201,8 @@ checkIfPointsAreInSBF <-
     return(df_confusion_mat)
   }
 
-# Generates the test points based on normal distribution and with point of interest as center/mean value
+# Generates the test points based on normal distribution and with point of
+# interest as center/mean value
 #
 # Parameters
 # ----------
@@ -197,11 +218,14 @@ checkIfPointsAreInSBF <-
 # Returns
 # -------
 # data.frame
-#   a data frame with random points generated with normal distribution centered around point of interest
+#   a data frame with random points generated with normal distribution centered
+#   around point of interest
 normGenerator <- function(num_rnd_points, lon, lat, degRadius) {
-  rlon <- rnorm(num_rnd_points, mean = lon, sd = degRadius) #
+  # mean and standard deviation in degrees
+  rlon <- rnorm(num_rnd_points, mean = lon, sd = degRadius)
+  # mean and standard deviation in degrees
   rlat <-
-    rnorm(num_rnd_points, mean = lat, sd = degRadius) # mean and standard deviation in degrees
+    rnorm(num_rnd_points, mean = lat, sd = degRadius) 
   df_test_points <-
     cbind.data.frame(longitude = rlon, latitude = rlat)
   names(df_test_points)[1] <- "lon_test"
@@ -211,13 +235,14 @@ normGenerator <- function(num_rnd_points, lon, lat, degRadius) {
   return(df_test_points)
 }
 
-# Calls function for creating set of hash functions necessary for creation of the SBF filter and
-# a function for creating SBF vector.
+# Calls function for creating set of hash functions necessary for creation of
+# the SBF filter and a function for creating SBF vector.
 #
 # Parameters
 # ----------
 # bounds : list
-#   list of the minimum longitude and maximum longitude, minimum latitude and maximum latitude
+#   list of the minimum longitude and maximum longitude, minimum latitude and
+#   maximum latitude
 # num_rnd_points : numeric
 #   number of test points to generate
 #
@@ -254,12 +279,14 @@ uniformGenerator <- function(bounds, num_rnd_points) {
   return(df_test_points)
 }
 
-# Calls uniformGenerator function or normGenerator function depending which distribution user decides to use
+# Calls uniformGenerator function or normGenerator function depending which
+# distribution user decides to use
 #
 # Parameters
 # ----------
 # bounds : list
-#   list of the minimum longitude and maximum longitude, minimum latitude and maximum latitude
+#   list of the minimum longitude and maximum longitude, minimum latitude and
+#   maximum latitude
 # num_rnd_points : numeric
 #   number of test points to generate
 # mode : string
@@ -302,30 +329,37 @@ generateRandomPoints <- function(bounds,
 # output : list
 #   list-like object generated by Shiny, it contains all output elements
 # is_initial : boolean
-#   set to false so it doesn't write F1_score and Confusion_marix csv filesat the startup
+#   set to false so it doesn't write F1_score and Confusion_marix csv filesat
+#   the startup
 testPoints <-
   function(df_test_points,
            grid,
            input,
            output,
            is_initial = FALSE) {
+    # Translate points from dataframe to simple features object
     test_points <- st_as_sf(df_test_points,
                             coords = c("lon_test", "lat_test"),
                             crs = 4326)
-    
+    # Translate point of interest from lat and lon numbers to simple features
+    # object
     poi_point <- createSFPoint(input$lat_poi, input$lon_poi)
     
     error <- tryCatch({
+      # Create area of interest
       S <- coverageAOI(grid,
                        poi_point,
                        input$radius,
                        input$cell_size,
                        input$n)
       
+      # Create sbf vector
       sbf_vector <- createSBF(input$k, input$algorithm, S, input$m)
       
+      # Create spatial radius
       buffer <- st_buffer(poi_point, input$radius)
       
+      # Show areas of interests and other spatial information on a map
       output$map <- renderTmap({
         tm_shape(S) +
           tm_fill(col = "label", alpha = 0.45) +
@@ -335,8 +369,11 @@ testPoints <-
           tm_shape(test_points) + tm_dots("blue") + tm_text("name", just = "top")
       })
       
+      # Initialise output text
       output_text <- ""
       
+      # In case there is less then 10 points write in text in which area each
+      # point belongs to
       if (length(df_test_points[, 1]) < 10) {
         for (i in 1:length(df_test_points[, 1])) {
           output_text <- paste(
@@ -346,6 +383,7 @@ testPoints <-
               "Label of test point= ",
               df_test_points[i,]$name,
               " is: ",
+              # Return label of the test point
               checkIfPointIsInSBF(
                 grid,
                 createSFPoint(df_test_points[i,]$lat_test,
@@ -356,16 +394,19 @@ testPoints <-
             )
           )
         }
-        output$SBF_label <- renderText({output_text})
+        output$SBF_label <- renderText({
+          output_text
+        })
       }
-      
+       
+      # Create confusion matrix
       confusion_mat <- checkIfPointsAreInSBF(grid,
                                              input$n,
                                              S,
                                              sbf_vector$H,
                                              sbf_vector$b_vector,
                                              df_test_points)
-      
+      # Initialize table with for F1 values
       df_F1 <- data.frame(
         area = integer(),
         acc = double(),
@@ -375,6 +416,9 @@ testPoints <-
         type_1_error = double(),
         type_2_error = double()
       )
+      
+      # For each area of interest calculate micro F1, recall, precision,
+      # type_1_error and type_2_error
       for (area in 1:(input$n + 1)) {
         print(area)
         TP <- 0
@@ -397,87 +441,109 @@ testPoints <-
         }
         print(paste0("TP ", TP, "; TN ", TN, "; FP ", FP, "; FN ", FN))
         
-        acc <- (TP+TN)/(TP+TN+FP+FN)
-        recall <- TP/(TP+FN)
-        precision <- TP/(TP+FP)
+        acc <- (TP + TN) / (TP + TN + FP + FN)
+        recall <- TP / (TP + FN)
+        precision <- TP / (TP + FP)
         F1_micro <- (2 * precision * recall) / (precision + recall)
-        type_1_error <- FP/(FP+TN)
-        type_2_error <- FN/(FN+TP)
+        type_1_error <- FP / (FP + TN)
+        type_2_error <- FN / (FN + TP)
         
         # edge cases which could cause division by 0
         if (TP == 0 & FP == 0 & FN == 0) {
           recall <- 1
           precision <- 1
           F1_micro <- 1
-        } else if(TP == 0 & ((FP == 0 & FN > 0) | (FP  > 0 & FN == 0))){
+        } else if (TP == 0 &
+                   ((FP == 0 & FN > 0) | (FP  > 0 & FN == 0))) {
           recall <- 0
           precision <- 0
           F1_micro <- 0
         }
-
-        if (is.nan(type_1_error) & F1_micro == 1){
+        
+        if (is.nan(type_1_error) & F1_micro == 1) {
           type_1_error = 0
         }
-        if (is.nan(type_2_error) & F1_micro == 1){
+        if (is.nan(type_2_error) & F1_micro == 1) {
           type_2_error = 0
         }
+        if (is.nan(type_1_error) & FN == 0 & TP == 0) {
+          type_1_error = 0
+        }
+        if (is.nan(type_2_error) & FN == 0 & TP == 0) {
+          type_2_error = 0
+        }
+        
+        # Write all calculated values in dataframe
         df_F1[nrow(df_F1) + 1,] <- c(area - 1,
-                                  acc,
-                                  recall,
-                                  precision,
-                                  F1_micro,
-                                  type_1_error,
-                                  type_2_error)
+                                     acc,
+                                     recall,
+                                     precision,
+                                     F1_micro,
+                                     type_1_error,
+                                     type_2_error)
       }
-      df_F1_micro_colSums <- colSums(df_F1)
-      df_F1$F1_makro <- df_F1_micro_colSums[[5]]/(input$n + 1)
-
       
+      # Calculate F1 makro
+      df_F1_micro_colSums <- colSums(df_F1)
+      df_F1$F1_makro <- df_F1_micro_colSums[[5]] / (input$n + 1)
+      
+      # Show confusion matrix
       output$confusion_matrix <- renderTable({
         confusion_mat[] <- lapply(confusion_mat, as.character)
         confusion_mat
       }, rownames = TRUE)
+      
+      # Show F1 table
       output$F1 <- renderTable({
         df_F1[] <- lapply(df_F1, as.character)
         df_F1
       }, rownames = FALSE)
       
+      # If the run isn't first one after starting the app then save the 
+      # confusion matrix and F1 results and histogram and matrix representation
+      # of SBF vector
       if (!is_initial) {
         dir.create(".\\tmp")
-        dir.create(paste0(".\\tmp\\",
-                          str_replace_all(
-                            Sys.time(),
-                            c(
-                              "-" = "_",
-                              " " = "-",
-                              ":" = "_"
-                            )
-                          )))
-        write.csv(
-          confusion_mat,
-          paste0(
-            ".\\tmp\\",
-            str_replace_all(Sys.time(),
-                            c(
-                              "-" = "_",
-                              " " = "-",
-                              ":" = "_"
-                            )),
-            "\\Confusion_Matrix_.csv"
-          ),
-          row.names = FALSE,
+        path <- paste0(".\\tmp\\",
+                       str_replace_all(Sys.time(),
+                                       c(
+                                         "-" = "_",
+                                         " " = "-",
+                                         ":" = "_"
+                                       )))
+        dir.create(path)
+        write.csv(confusion_mat,
+                  paste0(path,
+                         "\\Confusion_Matrix_.csv"),
+                  row.names = FALSE,
         )
         write.csv(df_F1,
-                  paste0(
-                    ".\\tmp\\",
-                    str_replace_all(Sys.time(),
-                                    c(
-                                      "-" = "_",
-                                      " " = "-",
-                                      ":" = "_"
-                                    )),
-                    "\\F1_score_.csv"
-                  ),
+                  paste0(path,
+                         "\\F1_score_.csv"),
+                  row.names = FALSE, )
+        saveParametersToCSV(input, output, path)
+        
+        # Create matrix representation of SBF vector
+        b_vec_mat <- t(matrix(sbf_vector$b_vector, ncol = 10))
+        # Save matrix representation of SBF vector as picture
+        jpeg(file = paste0(path, "\\b_vec_plot.jpg"))
+        plot(b_vec_mat, col = topo.colors, breaks = length(unique(sbf_vector$b_vector)))
+        dev.off()
+        # Save histogram of SBF vector as picture
+        jpeg(file = paste0(path, "\\b_vec_hist.jpg"))
+        hist(
+          b_vec_mat,
+          breaks = seq(min(b_vec_mat) - 0.5, max(b_vec_mat) + 0.5, by = 1),
+          main = "Histogram oznaka u PBF-u",
+          xlab = "Oznake",
+          ylab = "Frekvencija pojavljivanja",
+          labels = T
+        )
+        dev.off()
+        # Save SBF vector
+        write.csv(sbf_vector$b_vector,
+                  paste0(path,
+                         "\\SBF_vector_.csv"),
                   row.names = FALSE,
         )
       }
@@ -486,7 +552,7 @@ testPoints <-
     
     error = function(e)
     {
-      printMessage(e, output, "error")
+      printMessage(e, output, path)
     })
   }
 
@@ -561,9 +627,9 @@ createWarningStringForOutOfBoundsPoint <-
     )
   }
 
-readParameters <- function() {
+readCSV <- function(path) {
   error <- tryCatch({
-    parameters <- read.csv("parameters.csv")
+    parameters <- read.csv(path)
     return(parameters)
   },
   error = function(e)
@@ -572,6 +638,20 @@ readParameters <- function() {
   })
 }
 
+# Creates initial test point when the app starts
+#
+# Parameters
+# ----------
+# input : list
+#   list-like object generated by Shiny, it contains all input elements
+# output : list
+#   list-like object generated by Shiny, it contains all output elements
+# session : object
+#   The session object is an environment that can be used to access information and functionality relating to the session.
+# worldmap : dataframe
+#   Contains world country polygons at a specified scale, or points of tiny_countries
+# parameters : dataframe
+#   Contains saved parameters
 renderInitialMap <-
   function(input,
            output,
@@ -603,53 +683,117 @@ renderInitialMap <-
     testPoints(df_test_point, grid, input, output, TRUE)
   }
 
+# Checks formatting inside CSV file
+#
+# Parameters
+# ----------
+# neccesary_fields : list
+#   list of fields that the CSV file should contain
+# csv_as_dataframe : dataframe
+#   Content of CSV file as dataframe
+# output : list
+#   list-like object generated by Shiny, it contains all output elements
+#
+# Returns
+# -------
+# boolean
+#   True if format is good, otherwise false
+checkCSVFormat <- function(neccesary_fields, csv_as_dataframe, output){
+  # If file doesn't have good format write error
+  if (length(setdiff(neccesary_fields, colnames(csv_as_dataframe))) != 0){
+    printMessage("CSV doesn't have good format", output, "warning")
+    return(FALSE)
+  }
+  return(TRUE)
+}
 
+# Loads parameters from CSV file
+#
+# Parameters
+# ----------
+# input : list
+#   list-like object generated by Shiny, it contains all input elements
+# output : list
+#   list-like object generated by Shiny, it contains all output elements
+# session : object
+#   The session object is an environment that can be used to access information and functionality relating to the session.
 loadParametersFromCSV <- function(input, output, session) {
   observe({
     output$error_text <- renderText({
       
     })
-    
+    # Try to read file, if error write in app
     error <- tryCatch({
-      parameters <- readParameters()
-      ##input$country <- parameters$country
-      updateSelectInput(session, "country",
-                        selected = parameters$country)
-      updateNumericInput(session, "cell_size", value = parameters$cell_size)
-      updateNumericInput(session, "lat_test", value = parameters$lat_test)
-      updateNumericInput(session, "lon_test", value = parameters$lon_test)
-      updateNumericInput(session, "lon_poi", value = parameters$lon_poi)
-      updateNumericInput(session, "lat_poi", value = parameters$lat_poi)
-      updateNumericInput(session, "radius", value = parameters$radius)
-      updateNumericInput(session, "cell_size", value = parameters$cell_size)
-      updateNumericInput(session, "n", value = parameters$n)
-      updateNumericInput(session, "k", value = parameters$k)
-      updateSelectInput(session,
-                        "algorithm",
-                        choices = algorithms,
-                        selected = parameters$algorithm)
-      updateNumericInput(session, "m", value = parameters$m)
-      updateNumericInput(session,
-                         "num_rnd_points",
-                         value = parameters$num_rnd_points)
-      updateSelectInput(
-        session,
+      parameters <- readCSV("parameters.csv")
+      
+      neccessary_parameters <- c(
+        "country",
+        "cell_size",
+        "lon_poi",
+        "lat_poi",
+        "lat_test",
+        "lon_test",
+        "radius",
+        "n",
+        "algorithm",
+        "k",
+        "m",
+        "num_rnd_points",
         "randomGenerationModes",
-        choices = randomGenerationModes,
-        selected = parameters$randomGenerationModes
+        "degRadius"
       )
-      updateNumericInput(session, "degRadius", value = parameters$degRadius)
-      printMessage("Parameters are loaded.", output, "sucess")
+      # If file doesn't have good formatting don't do anything
+      if (checkCSVFormat(neccessary_parameters, parameters, output)){
+        updateSelectInput(session, "country",
+                          selected = parameters$country)
+        updateNumericInput(session, "cell_size", value = parameters$cell_size)
+        updateNumericInput(session, "lat_test", value = parameters$lat_test)
+        updateNumericInput(session, "lon_test", value = parameters$lon_test)
+        updateNumericInput(session, "lon_poi", value = parameters$lon_poi)
+        updateNumericInput(session, "lat_poi", value = parameters$lat_poi)
+        updateNumericInput(session, "radius", value = parameters$radius)
+        updateNumericInput(session, "cell_size", value = parameters$cell_size)
+        updateNumericInput(session, "n", value = parameters$n)
+        updateNumericInput(session, "k", value = parameters$k)
+        updateSelectInput(session,
+                          "algorithm",
+                          choices = algorithms,
+                          selected = parameters$algorithm)
+        updateNumericInput(session, "m", value = parameters$m)
+        updateNumericInput(session,
+                           "num_rnd_points",
+                           value = parameters$num_rnd_points)
+        updateSelectInput(
+          session,
+          "randomGenerationModes",
+          choices = randomGenerationModes,
+          selected = parameters$randomGenerationModes
+        )
+        updateNumericInput(session, "degRadius", value = parameters$degRadius)
+        # print message if loading parameters successful
+        printMessage("Parameters are loaded.", output, "sucess")
+      }
       
     },
     error = function(e)
     {
       printMessage(e, output, "error")
+      return()
     })
   })
 }
 
-saveParametersToCSV <- function(input, output) {
+# Saves parameters to CSV file
+#
+# Parameters
+# ----------
+# input : list
+#   list-like object generated by Shiny, it contains all input elements
+# output : list
+#   list-like object generated by Shiny, it contains all output elements
+# path : string
+#   Location whre to save the file
+saveParametersToCSV <- function(input, output, path) {
   parameters <- data.frame(
     "country" = input$country,
     "cell_size" = input$cell_size,
@@ -658,7 +802,6 @@ saveParametersToCSV <- function(input, output) {
     "lon_poi" = input$lon_poi,
     "lat_poi" = input$lat_poi,
     "radius" = input$radius,
-    "cell_size" = input$cell_size,
     "n" = input$n,
     "k" = input$k,
     "algorithm" = input$algorithm,
@@ -668,11 +811,9 @@ saveParametersToCSV <- function(input, output) {
     "degRadius" = input$degRadius
   )
   
-  output$error_text <- renderText({
-    
-  })
+  output$error_text <- renderText({})
   error <- tryCatch({
-    write.csv(parameters, "parameters.csv", row.names = FALSE)
+    write.csv(parameters, paste0(path, "\\parameters.csv"), row.names = FALSE)
     printMessage("Parameters are saved.", output, "sucess")
   },
   error = function(e)
@@ -681,6 +822,12 @@ saveParametersToCSV <- function(input, output) {
   })
 }
 
+# Cleans the Error text and SBF label fields, and also confusion matrix table
+#
+# Parameters
+# ----------
+# output : list
+#   list-like object generated by Shiny, it contains all output elements
 cleanOutputs <- function(output) {
   output$error_text <- renderText({
     
@@ -692,42 +839,3 @@ cleanOutputs <- function(output) {
     
   })
 }
-# #TODO clean up
-# #TODO try to figure out where is biggest bottleneck
-# test_k_and_m <- function(input, grid){
-#   poi_point <- createSFPoint(input$lat_poi, input$lon_poi)
-#   message("Creating S\n")
-#   S <- coverageAOI(grid,
-#                    poi_point,
-#                    input$radius,
-#                    input$cell_size,
-#                    input$n
-#   )
-#   message("Creating S2\n")
-#   S2 <- testAOI(grid, input$cell_size, S)
-#   k_seq <- 1:30
-#   m_seq <- seq(300, 600, by=20)
-#   accuracy <- data.frame(id = 1:(length(k_seq) * length(m_seq)))
-#   id = 1
-#
-#   message("Testing k and m\n")
-#   for (k in k_seq) {
-#     H <- generateHashSetSalts(k, input$algorithm)
-#     for (m in m_seq) {
-#       b_vector <- insert(S,H,m)
-#       results <- test(S2, H, b_vector) # <- problem with S2, možda da stavim tu taj test i da stavim da koristi random točke
-#
-#       accuracy[id, "num_of_k"] <- k
-#       accuracy[id, "size_of_vector"] <- m
-#       accuracy[id, "diff"] <- results$accuracy
-#       accuracy[id, "lower_label"] <- results$lower_label
-#       accuracy[id, "higher_label"] <- results$higher_label
-#       accuracy[id, "should_be_zero"] <- results$should_be_zero
-#
-#       id <- id + 1
-#     }
-#   }
-#   message("Writing results in file\n")
-#   write.csv(accuracy,paste("grid_search_for_k=",k,"_and_m",m,"(r=",input$radius,", algorithm=",input$algorithm,").csv", sep=""), row.names = FALSE)
-#   message("Done\n")
-# }
